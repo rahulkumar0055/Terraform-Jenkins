@@ -2,53 +2,58 @@ pipeline {
 
     parameters {
         booleanParam(name: 'autoApprove', defaultValue: false, description: 'Automatically run apply after generating plan?')
-    } 
-    environment {
-        aws-access-key     = credentials('aws-access-key')
-        aws-secret-key     = credentials('aws-secret-key')
     }
 
-   agent  any
+    agent any
+
+    environment {
+        AWS_ACCESS_KEY_ID     = credentials('aws-access-key')
+        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-key')
+    }
+
     stages {
-        stage('checkout') {
+
+        stage('Checkout') {
             steps {
-                 script{
-                        dir("terraform")
-                        {
-                            git "https://github.com/rahulkumar0055/Terraform-Jenkins.git"
-                        }
-                    }
+                dir("terraform") {
+                    git "https://github.com/rahulkumar0055/Terraform-Jenkins.git"
                 }
             }
+        }
 
         stage('Plan') {
             steps {
-                sh 'pwd;cd terraform/ ; terraform init'
-                sh "pwd;cd terraform/ ; terraform plan -out tfplan"
-                sh 'pwd;cd terraform/ ; terraform show -no-color tfplan > tfplan.txt'
+                sh '''
+                cd terraform
+                terraform init
+                terraform plan -out tfplan
+                terraform show -no-color tfplan > tfplan.txt
+                '''
             }
         }
-        stage('Approval') {
-           when {
-               not {
-                   equals expected: true, actual: params.autoApprove
-               }
-           }
 
-           steps {
-               script {
+        stage('Approval') {
+            when {
+                not {
+                    equals expected: true, actual: params.autoApprove
+                }
+            }
+            steps {
+                script {
                     def plan = readFile 'terraform/tfplan.txt'
                     input message: "Do you want to apply the plan?",
                     parameters: [text(name: 'Plan', description: 'Please review the plan', defaultValue: plan)]
-               }
-           }
-       }
+                }
+            }
+        }
 
         stage('Apply') {
             steps {
-                sh "pwd;cd terraform/ ; terraform apply -input=false tfplan"
+                sh '''
+                cd terraform
+                terraform apply -input=false tfplan
+                '''
             }
         }
     }
-
-  }
+}
