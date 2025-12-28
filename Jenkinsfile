@@ -1,13 +1,4 @@
 pipeline {
-
-    parameters {
-        booleanParam(
-            name: 'autoApprove',
-            defaultValue: false,
-            description: 'Automatically run apply after generating plan?'
-        )
-    }
-
     agent any
 
     environment {
@@ -27,43 +18,26 @@ pipeline {
             }
         }
 
-        stage('Plan') {
+        stage('Init') {
             steps {
                 sh '''
                 cd terraform
                 terraform init
-                terraform plan -out tfplan
-                terraform show -no-color tfplan > tfplan.txt
                 '''
             }
         }
 
-        stage('Approval') {
-            when {
-                not {
-                    equals expected: true, actual: params.autoApprove
-                }
-            }
+        stage('Destroy Approval') {
             steps {
-                script {
-                    def plan = readFile 'terraform/tfplan.txt'
-                    input message: "Do you want to apply the plan?",
-                        parameters: [
-                            text(
-                                name: 'Plan',
-                                description: 'Please review the plan',
-                                defaultValue: plan
-                            )
-                        ]
-                }
+                input message: "🔥 Confirm destroy all Terraform resources?"
             }
         }
 
-        stage('Apply') {
+        stage('Destroy') {
             steps {
                 sh '''
                 cd terraform
-                terraform apply -input=false tfplan
+                terraform destroy -auto-approve
                 '''
             }
         }
