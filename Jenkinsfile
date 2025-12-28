@@ -1,7 +1,11 @@
 pipeline {
 
     parameters {
-        booleanParam(name: 'autoApprove', defaultValue: false, description: 'Automatically run apply after generating plan?')
+        booleanParam(
+            name: 'autoApprove',
+            defaultValue: false,
+            description: 'Automatically run apply after generating plan?'
+        )
     }
 
     agent any
@@ -9,6 +13,7 @@ pipeline {
     environment {
         AWS_ACCESS_KEY_ID     = credentials('aws-access-key')
         AWS_SECRET_ACCESS_KEY = credentials('aws-secret-key')
+        AWS_DEFAULT_REGION    = "ap-south-1"
     }
 
     stages {
@@ -16,7 +21,8 @@ pipeline {
         stage('Checkout') {
             steps {
                 dir("terraform") {
-                    git "https://github.com/rahulkumar0055/Terraform-Jenkins.git"
+                    git branch: 'main',
+                        url: 'https://github.com/rahulkumar0055/Terraform-Jenkins.git'
                 }
             }
         }
@@ -42,7 +48,13 @@ pipeline {
                 script {
                     def plan = readFile 'terraform/tfplan.txt'
                     input message: "Do you want to apply the plan?",
-                    parameters: [text(name: 'Plan', description: 'Please review the plan', defaultValue: plan)]
+                        parameters: [
+                            text(
+                                name: 'Plan',
+                                description: 'Please review the plan',
+                                defaultValue: plan
+                            )
+                        ]
                 }
             }
         }
